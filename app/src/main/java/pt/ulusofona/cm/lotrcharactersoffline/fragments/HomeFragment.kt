@@ -6,12 +6,20 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import okhttp3.OkHttpClient
 import pt.ulusofona.cm.lotrcharactersoffline.NavigationManager
 import pt.ulusofona.cm.lotrcharactersoffline.R
+import pt.ulusofona.cm.lotrcharactersoffline.data.LOTROkHttp
+import pt.ulusofona.cm.lotrcharactersoffline.data.LOTRRepository
 import pt.ulusofona.cm.lotrcharactersoffline.databinding.FragmentHomeBinding
 import pt.ulusofona.cm.lotrcharactersoffline.model.LOTRCharacter
 
 class HomeFragment : Fragment() {
+
+  private val model = LOTRRepository.getInstance()
 
   private lateinit var binding: FragmentHomeBinding
 
@@ -24,8 +32,21 @@ class HomeFragment : Fragment() {
   override fun onStart() {
     super.onStart()
     binding.getCharactersBtn.setOnClickListener {
-      // TODO em vez de passarmos uma lista vazia, temos de passar a lista de characters
-      NavigationManager.goToCharactersListFragment(parentFragmentManager, mutableListOf())
+      CoroutineScope(Dispatchers.IO).launch {
+        model.getCharacters {
+          if(it.isSuccess) {
+            NavigationManager.goToCharactersListFragment(
+              parentFragmentManager,
+              //Envia uma lista vazia se não receber nada
+            it.getOrDefault(mutableListOf())
+            )
+          } else {
+            // Apresenta o erro num Toast
+            Toast.makeText(requireContext(), it.exceptionOrNull()?.message, Toast.LENGTH_LONG)
+              .show()
+          }
+        }
+      }
     }
   }
 
